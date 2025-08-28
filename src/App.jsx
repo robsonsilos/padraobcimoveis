@@ -1,34 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import './App.css'
+import { supabase } from './lib/supabaseClient';
 
 export default function App() {
-  const [imoveis, setImoveis] = useState([
-    {
-      id: 1,
-      cidade: "Balneário Camboriú",
-      titulo: "Apartamento Vista Mar",
-      preco: 450,
-      detalhes: "2 quartos, 1 vaga, piscina",
-      imagem:
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
-    },
-    {
-      id: 2,
-      cidade: "Curitiba",
-      titulo: "Studio Moderno no Centro",
-      preco: 280,
-      detalhes: "1 quarto, mobiliado, ar-condicionado",
-      imagem:
-        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
-    },
-  ]);
-
+  const [imoveis, setImoveis] = useState([]);
   const [reservas, setReservas] = useState([]);
   const [cidade, setCidade] = useState("");
+
+  useEffect(() => {
+    getImoveis();
+  }, []);
+
+  async function getImoveis() {
+    const { data } = await supabase.from("imoveis").select();
+    setImoveis(data);
+  }
 
   // Controle de login e usuários
   const [isAdmin, setIsAdmin] = useState(false);
@@ -67,17 +57,29 @@ export default function App() {
     imagem: "",
   });
 
-  const adicionarImovel = () => {
+  const adicionarImovel = async () => {
     if (!novoImovel.titulo || !novoImovel.cidade) {
       alert("Preencha pelo menos título e cidade!");
       return;
     }
-    setImoveis([...imoveis, { ...novoImovel, id: Date.now() }]);
-    setNovoImovel({ titulo: "", cidade: "", preco: "", detalhes: "", imagem: "" });
+    const { data, error } = await supabase.from("imoveis").insert([novoImovel]).select();
+    if (error) {
+      console.error("Erro ao adicionar imóvel:", error);
+      alert("Erro ao adicionar imóvel!");
+    } else {
+      setImoveis([...imoveis, ...data]);
+      setNovoImovel({ titulo: "", cidade: "", preco: "", detalhes: "", imagem: "" });
+    }
   };
 
-  const removerImovel = (id) => {
-    setImoveis(imoveis.filter((imovel) => imovel.id !== id));
+  const removerImovel = async (id) => {
+    const { error } = await supabase.from("imoveis").delete().eq("id", id);
+    if (error) {
+      console.error("Erro ao remover imóvel:", error);
+      alert("Erro ao remover imóvel!");
+    } else {
+      setImoveis(imoveis.filter((imovel) => imovel.id !== id));
+    }
   };
 
   return (
