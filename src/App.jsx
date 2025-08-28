@@ -56,19 +56,40 @@ export default function App() {
     detalhes: "",
     imagem: "",
   });
+  const [imagemFile, setImagemFile] = useState(null);
 
   const adicionarImovel = async () => {
     if (!novoImovel.titulo || !novoImovel.cidade) {
       alert("Preencha pelo menos título e cidade!");
       return;
     }
-    const { data, error } = await supabase.from("imoveis").insert([novoImovel]).select();
+
+    let imageUrl = novoImovel.imagem;
+
+    if (imagemFile) {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("imoveis-imagens")
+        .upload(`${Date.now()}_${imagemFile.name}`, imagemFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Erro ao fazer upload da imagem:", uploadError);
+        alert("Erro ao fazer upload da imagem!");
+        return;
+      }
+      imageUrl = supabase.storage.from("imoveis-imagens").getPublicUrl(uploadData.path).data.publicUrl;
+    }
+
+    const { data, error } = await supabase.from("imoveis").insert([{ ...novoImovel, imagem: imageUrl }]).select();
     if (error) {
       console.error("Erro ao adicionar imóvel:", error);
       alert("Erro ao adicionar imóvel!");
     } else {
       setImoveis([...imoveis, ...data]);
       setNovoImovel({ titulo: "", cidade: "", preco: "", detalhes: "", imagem: "" });
+      setImagemFile(null);
     }
   };
 
@@ -226,9 +247,15 @@ export default function App() {
               />
               <input
                 type="text"
-                placeholder="URL da Imagem"
+                placeholder="URL da Imagem (ou faça upload abaixo)"
                 value={novoImovel.imagem}
                 onChange={(e) => setNovoImovel({ ...novoImovel, imagem: e.target.value })}
+                className="p-2 border rounded"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImagemFile(e.target.files[0])}
                 className="p-2 border rounded"
               />
               <Button onClick={adicionarImovel} className="bg-blue-900 text-silver mt-2">
