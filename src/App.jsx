@@ -37,7 +37,7 @@ export default function App() {
 
   // Lista de usuários autorizados
   const usuarios = [
-    { usuario: "admin", senha: "1234" },
+    { usuario: "admin", senha: "Rob@#010447" },
     { usuario: "gestor", senha: "5678" },
   ];
 
